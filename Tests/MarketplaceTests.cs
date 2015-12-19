@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dapper;
@@ -122,210 +120,29 @@ namespace Tests
             var purchaseHistory = marketplace.GetPurchaseHistory(userId);
             Assert.That(purchaseHistory.Length, Is.EqualTo(0));
         }
-    }
 
-    public class Marketplace
-    {
-        private readonly CarRepository carRepository;
-        private readonly PurchaseRepository purchaseRepository;
-
-        public Marketplace(string connectionString)
+        [Test]
+        public void Should_build_sales_report()
         {
-            purchaseRepository = new PurchaseRepository(connectionString);
-            carRepository = new CarRepository(connectionString);
+            var marketplace = new Marketplace(TestDbConnectionString);
+
+            marketplace.Purchase("audi", "a4", Guid.NewGuid().ToString());
+            marketplace.Purchase("audi", "a4", Guid.NewGuid().ToString());
+            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
+            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
+            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
+            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
+            //Act
+            var result = marketplace.GetSalesReport();
+            //Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Length, Is.EqualTo(2));
+
+            var expectedAudiSales = new CarSales { Brand = "audi", Name = "a4", Count = 2, TotalPrice = 2 * audiA4.Price };
+            var expectedBmwSales = new CarSales { Brand = "bmw", Name = "520d", Count = 4, TotalPrice = 4 * bmw520d.Price };
+
+            expectedBmwSales.ToExpectedObject().ShouldMatch(result[0]);
+            expectedAudiSales.ToExpectedObject().ShouldMatch(result[1]);
         }
-
-        public Car[] Search(string brand)
-        {
-            return carRepository.Search(brand)
-                .ToArray();
-        }
-
-        public Car Search(string brand, string name)
-        {
-            return carRepository.Search(brand, name);
-        }
-
-        public void Add(Car car)
-        {
-            carRepository.Add(car);
-        }
-
-        public Car[] ListCars()
-        {
-            return carRepository.ListAll().ToArray();
-        }
-
-        public bool Purchase(string brand, string name, string userId)
-        {
-            var car = carRepository.Search(brand, name);
-            if (car == null)
-                return false;
-
-            decimal price = car.Price;
-            var purchase = new Purchase
-            {
-                Brand = brand,
-                Name = name,
-                UserId = userId,
-                Time = DateTimeOffset.Now,
-                Price = price
-            };
-
-            purchaseRepository.Purchase(purchase);
-
-            return true;
-        }
-
-        public Purchase[] GetPurchaseHistory(string userId)
-        {
-            return purchaseRepository.GetPurchaseHistory(userId)
-                .ToArray();
-        }
-    }
-
-    public class CarRepository : Repository
-    {
-        public CarRepository(string connectionString)
-            : base(connectionString)
-        { }
-
-        public void Add(Car car)
-        {
-            var sql = @"INSERT INTO [dbo].[Car] (
-                            [Name], 
-                            [Brand],
-                            [Price]
-                        ) 
-                        VALUES (
-                            @Name, 
-                            @Brand, 
-                            @Price
-                        );";
-
-            Execute(sql, car);
-        }
-
-        public IEnumerable<Car> Search(string brand)
-        {
-            var sql = @"SELECT 
-                            [Name], 
-                            [Brand], 
-                            [Price] 
-                        FROM [dbo].[Car]
-                        WHERE [Brand] = @Brand";
-
-            return Query<Car>(sql, new { Brand = brand });
-        }
-
-        public IEnumerable<Car> ListAll()
-        {
-            return Query<Car>(@"SELECT 
-                                    [Name], 
-                                    [Brand], 
-                                    [Price] 
-                                FROM [dbo].[Car]");
-        }
-
-        public Car Search(string brand, string name)
-        {
-            var sql = @"SELECT 
-                            [Name], 
-                            [Brand], 
-                            [Price] 
-                        FROM [dbo].[Car]
-                        WHERE [Brand] = @Brand AND [Name] = @Name";
-
-            return Query<Car>(sql, new { Brand = brand, Name = name })
-                .FirstOrDefault();
-        }
-    }
-
-    public abstract class Repository
-    {
-        private readonly string connectionString;
-
-        public Repository(string connectionString)
-        {
-            this.connectionString = connectionString;
-        }
-
-        protected IEnumerable<TResult> Query<TResult>(string sql, dynamic parameters = null)
-        {
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                return SqlMapper.Query<TResult>(connection, sql, parameters);
-            }
-        }
-
-        private SqlConnection OpenConnection()
-        {
-            var connection = new SqlConnection(connectionString);
-            connection.Open();
-
-            return connection;
-        }
-
-        protected void Execute(string sql, dynamic param = null)
-        {
-            using (var conn = OpenConnection())
-                SqlMapper.Execute(conn, sql, param);
-        }
-    }
-
-    public class PurchaseRepository : Repository
-    {
-        public PurchaseRepository(string connectionString)
-            : base(connectionString)
-        { }
-
-        public void Purchase(Purchase purchase)
-        {
-            Execute(@"INSERT INTO [dbo].[Purchase] (
-                    [Name], 
-                    [Brand],
-                    [Price],
-                    [UserId],
-                    [Time]
-                ) 
-                VALUES (
-                    @Name, 
-                    @Brand, 
-                    @Price,
-                    @UserId,
-                    @Time
-                );", purchase);
-        }
-
-        public IEnumerable<Purchase> GetPurchaseHistory(string userId)
-        {
-            var sql = @"SELECT 
-                            [Name], 
-                            [Brand], 
-                            [UserId], 
-                            [Time],
-                            [Price]
-                        FROM [dbo].[Purchase]
-                        WHERE [UserId] = @UserId";
-
-            return Query<Purchase>(sql, new { UserId = userId });
-        }
-    }
-
-    public class Car
-    {
-        public string Name { get; set; }
-        public string Brand { get; set; }
-        public decimal Price { get; set; }
-    }
-
-    public class Purchase
-    {
-        public string Name { get; set; }
-        public string Brand { get; set; }
-        public decimal Price { get; set; }
-        public string UserId { get; set; }
-        public DateTimeOffset Time { get; set; }
     }
 }
