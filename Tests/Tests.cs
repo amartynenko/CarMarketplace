@@ -15,40 +15,94 @@ namespace Tests
     [TestFixture]
     public class Tests
     {
-        [Test]
-        public void Should_work()
+        private Car car1;
+        private Car car2;
+        private Car car3;
+        private const string TestDbConnectionString = "Data Source=localhost;Initial Catalog=CarMarketPlace;Integrated Security=True";
+
+        [SetUp]
+        public void SetUp()
         {
-            var expectedCar1 = new Car { Brand = "audi", Name = "a4", Price = 19990.0m };
-            var expectedCar2 = new Car { Brand = "audi", Name = "a8", Price = 69990.0m };
+            Execute("TRUNCATE TABLE Car");
 
-            var marketplace = new Marketplace();
+            car1 = new Car { Brand = "audi", Name = "a4", Price = 19990.0m };
+            car2 = new Car { Brand = "audi", Name = "a8", Price = 69990.0m };
+            car3 = new Car { Brand = "bmw", Name = "520d", Price = 49990.0m };
 
-            marketplace.Add(expectedCar1);
-            marketplace.Add(expectedCar2);
+            var marketplace = new Marketplace(TestDbConnectionString);
+
+            marketplace.Add(car1);
+            marketplace.Add(car2);
+            marketplace.Add(car3);
+        }
+
+        private SqlConnection OpenConnection()
+        {
+            var connection = new SqlConnection(TestDbConnectionString);
+            connection.Open();
+
+            return connection;
+        }
+
+        private void Execute(string sql, dynamic param = null)
+        {
+            using (var conn = OpenConnection())
+                SqlMapper.Execute(conn, sql, param);
+        }
+
+        [Test]
+        public void Should_search_by_brand()
+        {
             //Act
-            var anotherMarketplace = new Marketplace();
-            var result = anotherMarketplace.Search("audi");
+            var marketplace = new Marketplace(TestDbConnectionString);
+            var result = marketplace.Search("audi");
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(2));
 
-            expectedCar1.ToExpectedObject().ShouldEqual(result[0]);
-            expectedCar2.ToExpectedObject().ShouldEqual(result[1]);
+            car1.ToExpectedObject().ShouldEqual(result[0]);
+            car2.ToExpectedObject().ShouldEqual(result[1]);
+        }
+
+        [Test]
+        public void Should_list_all_cars()
+        {
+            //Act
+            var marketplace = new Marketplace(TestDbConnectionString);
+            var result = marketplace.ListCars();
+            //Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Length, Is.EqualTo(3));
+
+            car1.ToExpectedObject().ShouldEqual(result[0]);
+            car2.ToExpectedObject().ShouldEqual(result[1]);
+            car3.ToExpectedObject().ShouldEqual(result[2]);
         }
     }
 
     public class Marketplace
     {
-        private CarRepository carRepository;
+        private readonly CarRepository carRepository;
+
+        public Marketplace(string connectionString)
+        {
+            carRepository = new CarRepository(connectionString);
+        }
 
         public Car[] Search(string brand)
         {
-            throw new NotImplementedException();
+            return carRepository.Search(brand)
+                .ToArray();
         }
 
         public void Add(Car car)
         {
             carRepository.Add(car);
+        }
+
+        public Car[] ListCars()
+        {
+            return carRepository.ListAll().ToArray();
         }
     }
 
@@ -73,6 +127,34 @@ namespace Tests
                     @Brand, 
                     @Price
                 );", car);
+        }
+
+        public IEnumerable<Car> Search(string brand)
+        {
+            return Query<Car>(@"SELECT 
+                                    [Name], 
+                                    [Brand], 
+                                    [Price] 
+                                FROM [dbo].[Car]
+                                WHERE [Brand] = @Brand", new { Brand = brand });
+        }
+
+        public IEnumerable<Car> ListAll()
+        {
+            return Query<Car>(@"SELECT 
+                                    [Name], 
+                                    [Brand], 
+                                    [Price] 
+                                FROM [dbo].[Car]");
+        }
+
+        protected IEnumerable<TResult> Query<TResult>(string sql, dynamic parameters = null)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                return SqlMapper.Query<TResult>(connection, sql, parameters);
+            }
         }
 
         private SqlConnection OpenConnection()
