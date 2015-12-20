@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace Tests
+namespace MarketPlaceService
 {
     public class PurchaseRepository : Repository
     {
@@ -8,9 +9,9 @@ namespace Tests
             : base(connectionString)
         { }
 
-        public void Purchase(Purchase purchase)
+        public async Task Purchase(Purchase purchase)
         {
-            Execute(@"INSERT INTO [dbo].[Purchase] (
+            await ExecuteAsync(@"INSERT INTO [dbo].[Purchase] (
                     [Name], 
                     [Brand],
                     [Price],
@@ -26,7 +27,7 @@ namespace Tests
                 );", purchase);
         }
 
-        public IEnumerable<Purchase> GetPurchaseHistory(string userId)
+        public async Task<IEnumerable<Purchase>> GetPurchaseHistory(string userId)
         {
             var sql = @"SELECT 
                             [Name], 
@@ -37,10 +38,10 @@ namespace Tests
                         FROM [dbo].[Purchase]
                         WHERE [UserId] = @UserId";
 
-            return Query<Purchase>(sql, new { UserId = userId });
+            return await QueryAsync<Purchase>(sql, new { UserId = userId });
         }
 
-        public IEnumerable<CarSales> GetSalesStatistics()
+        public async Task<IEnumerable<CarSales>> GetSalesStatistics()
         {
             var sql = @"SELECT 
                             [Name], 
@@ -51,7 +52,7 @@ namespace Tests
                         GROUP BY [Name], [Brand]
                         ORDER BY count(1) DESC";
 
-            return Query<CarSales>(sql);
+            return await QueryAsync<CarSales>(sql);
         }
     }
 }

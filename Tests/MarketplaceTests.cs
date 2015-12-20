@@ -1,60 +1,36 @@
 ﻿using System;
-using System.Data;
-using System.Data.SqlClient;
-using System.Text;
-using System.Threading.Tasks;
-using Dapper;
 using ExpectedObjects;
+using MarketPlaceService;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace Tests
 {
     [TestFixture]
-    public class MarketplaceTests
+    public class MarketplaceTests : DbFixture
     {
         private Car audiA4;
         private Car audiA8;
         private Car bmw520d;
-        private const string TestDbConnectionString = "Data Source=localhost;Initial Catalog=CarMarketPlace;Integrated Security=True";
 
-        [SetUp]
-        public void SetUp()
+        protected override void DoSetUp()
         {
-            Execute("TRUNCATE TABLE Car");
-            Execute("TRUNCATE TABLE Purchase");
-
             audiA4 = new Car { Brand = "audi", Name = "a4", Price = 19990.0m };
             audiA8 = new Car { Brand = "audi", Name = "a8", Price = 69990.0m };
             bmw520d = new Car { Brand = "bmw", Name = "520d", Price = 49990.0m };
 
             var marketplace = new Marketplace(TestDbConnectionString);
 
-            marketplace.Add(audiA4);
-            marketplace.Add(audiA8);
-            marketplace.Add(bmw520d);
-        }
-
-        private SqlConnection OpenConnection()
-        {
-            var connection = new SqlConnection(TestDbConnectionString);
-            connection.Open();
-
-            return connection;
-        }
-
-        private void Execute(string sql, dynamic param = null)
-        {
-            using (var conn = OpenConnection())
-                SqlMapper.Execute(conn, sql, param);
+            marketplace.Add(audiA4).Wait();
+            marketplace.Add(audiA8).Wait();
+            marketplace.Add(bmw520d).Wait();
         }
 
         [Test]
         public void Should_search_by_brand()
         {
-            //Act
             var marketplace = new Marketplace(TestDbConnectionString);
-            var result = marketplace.Search("audi");
+            //Act
+            var result = marketplace.SearchAsync("audi").Result;
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(2));
@@ -68,7 +44,7 @@ namespace Tests
         {
             //Act
             var marketplace = new Marketplace(TestDbConnectionString);
-            var result = marketplace.Search("audi", "a8");
+            var result = marketplace.SearchAsync("audi", "a8").Result;
             //Assert
             audiA8.ToExpectedObject().ShouldEqual(result);
         }
@@ -78,7 +54,7 @@ namespace Tests
         {
             //Act
             var marketplace = new Marketplace(TestDbConnectionString);
-            var result = marketplace.ListCars();
+            var result = marketplace.ListCars().Result;
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(3));
@@ -94,7 +70,7 @@ namespace Tests
             var marketplace = new Marketplace(TestDbConnectionString);
             var userId = Guid.NewGuid().ToString();
             //Act
-            var result = marketplace.Purchase("audi", "a4", userId);
+            var result = marketplace.PurchaseAsync("audi", "a4", userId).Result;
             //Assert
             Assert.That(result, Is.True);
 
@@ -113,7 +89,7 @@ namespace Tests
             var marketplace = new Marketplace(TestDbConnectionString);
             var userId = Guid.NewGuid().ToString();
             //Act
-            var result = marketplace.Purchase("lexus", "rx350", userId);
+            var result = marketplace.PurchaseAsync("lexus", "rx350", userId).Result;
             //Assert
             Assert.That(result, Is.False);
 
@@ -126,12 +102,12 @@ namespace Tests
         {
             var marketplace = new Marketplace(TestDbConnectionString);
 
-            marketplace.Purchase("audi", "a4", Guid.NewGuid().ToString());
-            marketplace.Purchase("audi", "a4", Guid.NewGuid().ToString());
-            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
-            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
-            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
-            marketplace.Purchase("bmw", "520d", Guid.NewGuid().ToString());
+            marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString()).Wait();
+            marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString()).Wait();
+            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
+            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
+            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
+            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
             //Act
             var result = marketplace.GetSalesReport();
             //Assert
