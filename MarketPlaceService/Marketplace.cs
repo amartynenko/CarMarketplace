@@ -8,13 +8,21 @@ namespace MarketPlaceService
     {
         Task<Car[]> SearchAsync(string brand);
         Task<Car> SearchAsync(string brand, string name);
-        Task<bool> Add(Car car);
-        Task<bool> Update(Car car);
-        Task<Car[]> ListCars();
-        Task<bool> Delete(string brand, string name);
+        Task<bool> AddAsync(Car car);
+        Task<bool> UpdateAsync(Car car);
+        Task<Car[]> ListCarsAsync();
+        Task<bool> DeleteAsync(string brand, string name);
     }
 
-    public class Marketplace : ICarService
+    public interface IMarketplace
+    {
+        Task<Car[]> ListCarsAsync();
+        Task<Purchase> PurchaseAsync(string brand, string name, string userId);
+        Task<Purchase[]> GetPurchaseHistoryAsync(string userId);
+        Task<CarSales[]> GetSalesReportAsync();
+    }
+
+    public class Marketplace : ICarService, IMarketplace
     {
         private readonly CarRepository carRepository;
         private readonly PurchaseRepository purchaseRepository;
@@ -36,31 +44,31 @@ namespace MarketPlaceService
             return await carRepository.SearchAsync(brand, name);
         }
 
-        public async Task<bool> Add(Car car)
+        public async Task<bool> AddAsync(Car car)
         {
             return await carRepository.AddAsync(car);
         }
 
-        public async Task<bool> Update(Car car)
+        public async Task<bool> UpdateAsync(Car car)
         {
             return await carRepository.UpdateAsync(car);
         }
 
-        public async Task<Car[]> ListCars()
+        public async Task<Car[]> ListCarsAsync()
         {
             return (await carRepository.ListAll()).ToArray();
         }
 
-        public async Task<bool> Delete(string brand, string name)
+        public async Task<bool> DeleteAsync(string brand, string name)
         {
             return await carRepository.DeleteAsync(brand, name);
         }
 
-        public async Task<bool> PurchaseAsync(string brand, string name, string userId)
+        public async Task<Purchase> PurchaseAsync(string brand, string name, string userId)
         {
             var car = await carRepository.SearchAsync(brand, name);
             if (car == null)
-                return false;
+                return null;
 
             decimal price = car.Price;
             var purchase = new Purchase
@@ -74,16 +82,16 @@ namespace MarketPlaceService
 
             await purchaseRepository.Purchase(purchase);
 
-            return true;
+            return purchase;
         }
 
-        public Purchase[] GetPurchaseHistory(string userId)
+        public async Task<Purchase[]> GetPurchaseHistoryAsync(string userId)
         {
             return purchaseRepository.GetPurchaseHistory(userId).Result
                 .ToArray();
         }
 
-        public CarSales[] GetSalesReport()
+        public async Task<CarSales[]> GetSalesReportAsync()
         {
             return purchaseRepository.GetSalesStatistics().Result
                 .ToArray();

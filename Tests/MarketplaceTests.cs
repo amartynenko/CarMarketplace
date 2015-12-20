@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using ExpectedObjects;
 using MarketPlaceService;
 using NUnit.Framework;
@@ -20,17 +21,17 @@ namespace Tests
 
             var marketplace = new Marketplace(TestDbConnectionString);
 
-            marketplace.Add(audiA4).Wait();
-            marketplace.Add(audiA8).Wait();
-            marketplace.Add(bmw520d).Wait();
+            marketplace.AddAsync(audiA4).Wait();
+            marketplace.AddAsync(audiA8).Wait();
+            marketplace.AddAsync(bmw520d).Wait();
         }
 
         [Test]
-        public void Should_search_by_brand()
+        public async Task Should_search_by_brand()
         {
             var marketplace = new Marketplace(TestDbConnectionString);
             //Act
-            var result = marketplace.SearchAsync("audi").Result;
+            var result = await marketplace.SearchAsync("audi");
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(2));
@@ -40,21 +41,21 @@ namespace Tests
         }
 
         [Test]
-        public void Should_search_by_brand_and_name()
+        public async Task Should_search_by_brand_and_name()
         {
             //Act
             var marketplace = new Marketplace(TestDbConnectionString);
-            var result = marketplace.SearchAsync("audi", "a8").Result;
+            var result = await marketplace.SearchAsync("audi", "a8");
             //Assert
             audiA8.ToExpectedObject().ShouldEqual(result);
         }
 
         [Test]
-        public void Should_list_all_cars()
+        public async Task Should_list_all_cars()
         {
             //Act
             var marketplace = new Marketplace(TestDbConnectionString);
-            var result = marketplace.ListCars().Result;
+            var result = await marketplace.ListCarsAsync();
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(3));
@@ -65,16 +66,20 @@ namespace Tests
         }
 
         [Test]
-        public void Should_buy_a_car()
+        public async Task Should_buy_a_car()
         {
             var marketplace = new Marketplace(TestDbConnectionString);
             var userId = Guid.NewGuid().ToString();
             //Act
-            var result = marketplace.PurchaseAsync("audi", "a4", userId).Result;
+            var result = await marketplace.PurchaseAsync("audi", "a4", userId);
             //Assert
-            Assert.That(result, Is.True);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Brand, Is.EqualTo("audi"));
+            Assert.That(result.Name, Is.EqualTo("a4"));
+            Assert.That(result.UserId, Is.EqualTo(userId));
+            Assert.That(result.Price, Is.EqualTo(audiA4.Price));
 
-            var purchaseHistory = marketplace.GetPurchaseHistory(userId);
+            var purchaseHistory = await marketplace.GetPurchaseHistoryAsync(userId);
             Assert.That(purchaseHistory.Length, Is.EqualTo(1));
             Assert.That(purchaseHistory[0].Brand, Is.EqualTo("audi"));
             Assert.That(purchaseHistory[0].Name, Is.EqualTo("a4"));
@@ -84,32 +89,32 @@ namespace Tests
         }
 
         [Test]
-        public void Should_not_buy_nonexisting_car()
+        public async Task Should_not_buy_nonexisting_car()
         {
             var marketplace = new Marketplace(TestDbConnectionString);
             var userId = Guid.NewGuid().ToString();
             //Act
-            var result = marketplace.PurchaseAsync("lexus", "rx350", userId).Result;
+            var result = await marketplace.PurchaseAsync("lexus", "rx350", userId);
             //Assert
-            Assert.That(result, Is.False);
+            Assert.That(result, Is.Null);
 
-            var purchaseHistory = marketplace.GetPurchaseHistory(userId);
+            var purchaseHistory = await marketplace.GetPurchaseHistoryAsync(userId);
             Assert.That(purchaseHistory.Length, Is.EqualTo(0));
         }
 
         [Test]
-        public void Should_build_sales_report()
+        public async Task Should_build_sales_report()
         {
             var marketplace = new Marketplace(TestDbConnectionString);
 
-            marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString()).Wait();
-            marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString()).Wait();
-            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
-            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
-            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
-            marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString()).Wait();
+            await marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString());
+            await marketplace.PurchaseAsync("audi", "a4", Guid.NewGuid().ToString());
+            await marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString());
+            await marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString());
+            await marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString());
+            await marketplace.PurchaseAsync("bmw", "520d", Guid.NewGuid().ToString());
             //Act
-            var result = marketplace.GetSalesReport();
+            var result = await marketplace.GetSalesReportAsync();
             //Assert
             Assert.That(result, Is.Not.Null);
             Assert.That(result.Length, Is.EqualTo(2));

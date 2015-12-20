@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
-using System.Web.Http.Results;
 using CarMarketPlace.Models;
 using MarketPlaceService;
 
@@ -31,7 +30,7 @@ namespace CarMarketPlace.Controllers
         public async Task<IHttpActionResult> AddAsync(CarModel carModel)
         {
             var car = ToCar(carModel);
-            var added = await carService.Add(car);
+            var added = await carService.AddAsync(car);
 
             if (!added)
                 return Conflict();
@@ -50,7 +49,7 @@ namespace CarMarketPlace.Controllers
                 Name = name,
                 Price = price
             };
-            var updated = await carService.Update(car);
+            var updated = await carService.UpdateAsync(car);
 
             if (!updated)
                 return NotFound();
@@ -62,7 +61,7 @@ namespace CarMarketPlace.Controllers
         [Route("{brand}/{name}")]
         public async Task<IHttpActionResult> DeleteAsync([FromUri]string brand, [FromUri]string name)
         {
-            var delete = await carService.Delete(brand, name);
+            var delete = await carService.DeleteAsync(brand, name);
 
             if (!delete)
                 return NotFound();
