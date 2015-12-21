@@ -8,7 +8,6 @@ namespace CarMarketPlace.Controllers
 {
     [Authorize]
     [RoutePrefix("api/marketplace")]
-    [AllowAnonymous]
     public class MarketplaceController : ApiController
     {
         private readonly IMarketplace marketplaceService;

@@ -58,11 +58,11 @@ namespace CarMarketPlace
             //    appId: "",
             //    appSecret: "");
 
-            //app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions()
-            //{
-            //    ClientId = "",
-            //    ClientSecret = ""
-            //});
+            app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions()
+            {
+                ClientId = "800522278374-cfetvdev7ipsbl6uvdqrlh8fi7t0a6t5.apps.googleusercontent.com",
+                ClientSecret = "MAtwclEjNcOUNDKPcso9kqbY"
+            });
         }
     }
 }
