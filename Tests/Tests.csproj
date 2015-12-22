@@ -71,9 +71,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CarMarketPlace\Host.csproj">
+    <ProjectReference Include="..\CarMarketPlace.Host\CarMarketPlace.Host.csproj">
       <Project>{84BFA556-4320-4F87-B1F2-F7EF80B8AA09}</Project>
-      <Name>Host</Name>
+      <Name>CarMarketPlace.Host</Name>
     </ProjectReference>
     <ProjectReference Include="..\MarketPlaceService\MarketPlaceService.csproj">
       <Project>{1FC21A06-C065-4DA3-9752-CCA9DB1620D2}</Project>

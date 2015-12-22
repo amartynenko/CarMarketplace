@@ -5,6 +5,7 @@ using Microsoft.Owin;
 using Owin;
 
 [assembly: OwinStartup(typeof(CarMarketPlace.Startup))]
+[assembly: log4net.Config.XmlConfigurator(Watch = true)]
 
 namespace CarMarketPlace
 {

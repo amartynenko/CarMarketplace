@@ -21,6 +21,7 @@ Thumbs.db
 [Bb]in
 [Dd]ebug*/
 App_Data/
+Logs
 *.lib
 *.sbr
 obj/

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Web.Http;
+using CarMarketPlace.Filters;
 using Microsoft.Owin.Security.OAuth;
-using Newtonsoft.Json.Serialization;
 
 namespace CarMarketPlace
 {
@@ -17,6 +13,10 @@ namespace CarMarketPlace
             // Configure Web API to use only bearer token authentication.
             config.SuppressDefaultHostAuthentication();
             config.Filters.Add(new HostAuthenticationFilter(OAuthDefaults.AuthenticationType));
+            config.Filters.Add(new ValidationActionFilter());
+            config.Filters.Add(new ExceptionHandlingFilter());
+
+            log4net.Config.XmlConfigurator.Configure(); 
 
             // Web API routes
             config.MapHttpAttributeRoutes();
